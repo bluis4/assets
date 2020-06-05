@@ -27,23 +27,25 @@ export default {
 
     computed: {
 
-        elements({target}, $el) {
-            return target ? $$(target, $el) : [$el];
+        elements: {
+
+            get({target}, $el) {
+                return target ? $$(target, $el) : [$el];
+            },
+
+            watch(elements) {
+                if (this.hidden) {
+                    css(filter(elements, `:not(.${this.inViewClass})`), 'visibility', 'hidden');
+                }
+            },
+
+            immediate: true
+
         }
 
     },
 
     update: [
-
-        {
-
-            write() {
-                if (this.hidden) {
-                    css(filter(this.elements, `:not(.${this.inViewClass})`), 'visibility', 'hidden');
-                }
-            }
-
-        },
 
         {
 
@@ -104,7 +106,10 @@ export default {
                             )
                         ).then(() => {
                             toggle(true);
-                            setTimeout(() => state.queued = false, 300);
+                            setTimeout(() => {
+                                state.queued = false;
+                                this.$emit();
+                            }, 300);
                         });
 
                     } else if (!state.show && state.inview && !state.queued && this.repeat) {

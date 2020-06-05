@@ -1,11 +1,11 @@
 import {getComponentName} from './component';
-import {apply, fastdom, hasAttr} from 'uikit-util';
+import {apply, fastdom, hasAttr, inBrowser} from 'uikit-util';
 
 export default function (UIkit) {
 
     const {connect, disconnect} = UIkit;
 
-    if (!('MutationObserver' in window)) {
+    if (!inBrowser || !window.MutationObserver) {
         return;
     }
 
@@ -17,7 +17,11 @@ export default function (UIkit) {
             apply(document.body, connect);
         }
 
-        (new MutationObserver(mutations => mutations.forEach(applyMutation))).observe(document, {
+        (new MutationObserver(mutations => {
+            const updates = [];
+            mutations.forEach(mutation => applyMutation(mutation, updates));
+            updates.forEach(el => UIkit.update(el));
+        })).observe(document, {
             childList: true,
             subtree: true,
             characterData: true,
@@ -27,7 +31,7 @@ export default function (UIkit) {
         UIkit._initialized = true;
     }
 
-    function applyMutation(mutation) {
+    function applyMutation(mutation, updates) {
 
         const {target, type} = mutation;
 
@@ -35,7 +39,9 @@ export default function (UIkit) {
             ? applyChildList(mutation)
             : applyAttribute(mutation);
 
-        update && UIkit.update(target);
+        if (update && !updates.some(element => element.contains(target))) {
+            updates.push(target.contains ? target : target.parentNode); // IE 11 text node does not implement contains
+        }
 
     }
 

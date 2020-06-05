@@ -77,7 +77,7 @@ export function positionAt(element, target, elAttach, targetAttach, elOffset, ta
 
                 function apply(elemOffset, targetOffset) {
 
-                    const newVal = position[align] + elemOffset + targetOffset - elOffset[dir] * 2;
+                    const newVal = (position[align] + elemOffset + targetOffset - elOffset[dir] * 2).toFixed(4);
 
                     if (newVal >= boundary[align] && newVal + dim[prop] <= boundary[alignFlip]) {
                         position[align] = newVal;
@@ -281,7 +281,7 @@ function getPos(pos) {
 
     if (pos.length === 1) {
         pos = x.test(pos[0])
-            ? pos.concat(['center'])
+            ? pos.concat('center')
             : y.test(pos[0])
                 ? ['center'].concat(pos)
                 : ['center', 'center'];

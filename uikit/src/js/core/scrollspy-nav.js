@@ -20,8 +20,20 @@ export default {
 
     computed: {
 
-        links(_, $el) {
-            return $$('a[href^="#"]', $el).filter(el => el.hash);
+        links: {
+
+            get(_, $el) {
+                return $$('a[href^="#"]', $el).filter(el => el.hash);
+            },
+
+            watch(links) {
+                if (this.scroll) {
+                    this.$create('scroll', links, {offset: this.offset || 0});
+                }
+            },
+
+            immediate: true
+
         },
 
         targets() {
@@ -29,22 +41,12 @@ export default {
         },
 
         elements({closest: selector}) {
-            return closest($$(this.targets.map(el => `[href="#${el.id}"]`).join(',')), selector || '*');
+            return closest(this.links, selector || '*');
         }
 
     },
 
     update: [
-
-        {
-
-            read() {
-                if (this.scroll) {
-                    this.$create('scroll', this.links, {offset: this.offset || 0});
-                }
-            }
-
-        },
 
         {
 
@@ -59,17 +61,15 @@ export default {
                 const scrollElement = last(scrollParents(this.targets[0]));
                 const {scrollTop, scrollHeight} = scrollElement;
                 const viewport = getViewport(scrollElement);
-                const scroll = scrollTop;
                 const max = scrollHeight - offset(viewport).height;
                 let active = false;
 
-                if (scroll === max) {
+                if (scrollTop === max) {
                     active = length - 1;
                 } else {
 
                     this.targets.every((el, i) => {
-                        const {top} = position(el, viewport);
-                        if (top - this.offset <= 0) {
+                        if (position(el, viewport).top - this.offset <= 0) {
                             active = i;
                             return true;
                         }

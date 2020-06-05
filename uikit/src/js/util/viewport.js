@@ -1,9 +1,8 @@
 import {css} from './style';
 import {Promise} from './promise';
-import {isVisible} from './filter';
-import {parents} from './selector';
+import {isVisible, parents} from './filter';
 import {offset, offsetPosition, position} from './dimensions';
-import {clamp, intersectRect, isDocument, isWindow, last, pointInRect, toNode, toWindow} from './lang';
+import {clamp, intersectRect, isDocument, isWindow, last, toNode, toWindow} from './lang';
 
 export function isInView(element, offsetTop = 0, offsetLeft = 0) {
 
@@ -11,25 +10,20 @@ export function isInView(element, offsetTop = 0, offsetLeft = 0) {
         return false;
     }
 
-    const parents = overflowParents(element).concat(element);
+    const parents = overflowParents(element);
 
-    for (let i = 0; i < parents.length - 1; i++) {
-        const {top, left, bottom, right} = offset(getViewport(parents[i]));
-        const vp = {
+    return parents.every((parent, i) => {
+
+        const client = offset(parents[i + 1] || element);
+        const {top, left, bottom, right} = offset(getViewport(parent));
+
+        return intersectRect(client, {
             top: top - offsetTop,
             left: left - offsetLeft,
             bottom: bottom + offsetTop,
             right: right + offsetLeft
-        };
-
-        const client = offset(parents[i + 1]);
-
-        if (!intersectRect(client, vp) && !pointInRect({x: client.left, y: client.top}, vp)) {
-            return false;
-        }
-    }
-
-    return true;
+        });
+    });
 }
 
 export function scrollTop(element, top) {
@@ -43,14 +37,13 @@ export function scrollTop(element, top) {
     element.scrollTop = top;
 }
 
-export function scrollIntoView(element, {duration = 1000, offset = 0} = {}) {
+export function scrollIntoView(element, {offset: offsetBy = 0} = {}) {
 
     if (!isVisible(element)) {
         return;
     }
 
     const parents = overflowParents(element).concat(element);
-    duration /= parents.length - 1;
 
     let promise = Promise.resolve();
     for (let i = 0; i < parents.length - 1; i++) {
@@ -61,7 +54,8 @@ export function scrollIntoView(element, {duration = 1000, offset = 0} = {}) {
                 const element = parents[i + 1];
 
                 const {scrollTop: scroll} = scrollElement;
-                const top = position(element, getViewport(scrollElement)).top - offset;
+                const top = Math.ceil(position(element, getViewport(scrollElement)).top - offsetBy);
+                const duration = getDuration(Math.abs(top));
 
                 const start = Date.now();
                 const step = () => {
@@ -85,6 +79,10 @@ export function scrollIntoView(element, {duration = 1000, offset = 0} = {}) {
     }
 
     return promise;
+
+    function getDuration(dist) {
+        return 40 * Math.pow(dist, .375);
+    }
 
     function ease(k) {
         return 0.5 * (1 - Math.cos(Math.PI * k));
